@@ -1,0 +1,12 @@
+# DO NOT include azure-functions-worker in this file
+# The Python Worker is managed by Azure Functions platform
+# Manually managing azure-functions-worker may cause unexpected issues
+
+azure-functions
+pyodbc
+sqlalchemy
+opentelemetry-api==0.13b0
+opentelemetry-sdk==0.13b0
+opentelemetry-instrumentation-sqlalchemy==0.13b0
+opentelemetry-azure-monitor==0.5b0
+
