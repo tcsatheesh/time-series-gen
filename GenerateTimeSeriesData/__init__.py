@@ -45,6 +45,7 @@ def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.utcnow()
 
     with tracer.start_as_current_span('BusinessLayer.run'):
-        BusinessLayer.run(engine, utc_timestamp)
+        BusinessLayer.run(engine, utc_timestamp, enable_anomaly=False)
 
-    logging.info('Version: 1.1 - Python timer trigger function ran at %s', utc_timestamp.isoformat())
+    logging.info('Version: 1.3 - Python timer trigger function ran at %s',
+                 utc_timestamp.isoformat())

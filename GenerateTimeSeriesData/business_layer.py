@@ -15,6 +15,7 @@ Base = declarative_base()
 
 datetime_format = "%Y-%m-%dT%H:%M:00Z"
 
+
 class SensorReading(Base):
     __tablename__ = 'sensor_reading_2'
 
@@ -94,9 +95,10 @@ class DataAccessLayer(BaseLayer):
 
 
 class BusinessLayer(BaseLayer):
-    def __init__(self, current_datetime, engine):
+    def __init__(self, current_datetime, engine, enable_anomaly):
         self.dal = DataAccessLayer(engine)
         self.current_datetime = current_datetime
+        self.enable_anomaly = enable_anomaly
 
     def get_value(self, previous_record):
         equipment_list = {
@@ -152,11 +154,12 @@ class BusinessLayer(BaseLayer):
         start = equipment_list[previous_record.equipment_tag]["min"]
         end = equipment_list[previous_record.equipment_tag]["max"]
         x = round(random.uniform(start, end), 2)
-        anomaly = 0  # random.uniform(-1, 1)
-        if anomaly > 0:
-            x = round(end * anomaly, 2)
-        elif anomaly < 0:
-            x = round(start * -1 * anomaly, 2)
+        if self.enable_anomaly:
+            anomaly = random.uniform(-1, 1)
+            if anomaly > 0:
+                x = round(end * anomaly, 2)
+            elif anomaly < 0:
+                x = round(start * -1 * anomaly, 2)
         return x
 
     def create_next_record(self, previous_record):
@@ -190,12 +193,15 @@ class BusinessLayer(BaseLayer):
         return _all_records
 
     @classmethod
-    def run(cls, engine, current_datetime):        
-        bl = BusinessLayer(current_datetime, engine)
+    def run(cls, engine, current_datetime, enable_anomaly):
+        bl = BusinessLayer(current_datetime=current_datetime,
+                           engine=engine,
+                           enable_anomaly=enable_anomaly)
         next_records = bl.process()
         # bl.logme(next_records)
         bl.dal.commit()
         bl.dal.close()
+
 
 if __name__ == "__main__":
     utc_timestamp = datetime.utcnow()
@@ -206,4 +212,4 @@ if __name__ == "__main__":
 
     conn_str = 'mssql+pyodbc:///?odbc_connect={}'.format(params)
     engine = create_engine(conn_str, echo=True)
-    BusinessLayer.run(engine, utc_timestamp)
+    BusinessLayer.run(engine, utc_timestamp, False)
