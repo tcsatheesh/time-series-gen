@@ -198,7 +198,7 @@ class BusinessLayer(BaseLayer):
     def write_records(self, x):
         self.dal.write_records(x['new_timestamp'], x['records'])
 
-    def process(self):
+    def process(self, pooled_connection=False):
         _last_record_time, _previous_records = self.dal.get_last_records()
         new_timestamp = _last_record_time + timedelta(seconds=60)
         _next_records = self.create_next_records(_previous_records,
@@ -214,11 +214,15 @@ class BusinessLayer(BaseLayer):
             _last_record_time = new_timestamp
             new_timestamp = new_timestamp + timedelta(seconds=60)
             _next_records = self.create_next_records(_previous_records,
-                                                     new_timestamp)
-        from multiprocessing import Pool
-        with Pool(10) as p:
-            p.map(self.write_records, records_to_write)
-        self.dal.write_last_records(_last_record_time, _previous_records)
+                                                     new_timestamp)        
+        if pooled_connection:
+            from multiprocessing import Pool
+            with Pool(10) as p:
+                p.map(self.write_records, records_to_write)
+        else:
+            for x in records_to_write:
+                self.dal.write_records(x['new_timestamp'], x['records'])
+            self.dal.write_last_records(_last_record_time, _previous_records)
 
     @classmethod
     def run(cls, current_datetime, enable_anomaly):
