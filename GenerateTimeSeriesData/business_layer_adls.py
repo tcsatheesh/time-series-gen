@@ -68,7 +68,7 @@ class DataAccessLayer(BaseLayer):
                                           datetime_format),
                         record["equipment_tag"], record["value"]))
         except ResourceNotFoundError:
-            start_timestamp = datetime.strptime("2020-10-01T00:00:00Z",
+            start_timestamp = datetime.strptime("2020-10-13T02:02:00Z",
                                                 datetime_format)
             last_record_timestamp = start_timestamp  - timedelta(minutes=1) # datetime.utcnow() - timedelta(minutes=2)
             equipment_list = {
@@ -195,18 +195,29 @@ class BusinessLayer(BaseLayer):
                 _next_records.append(_next_record)
         return _next_records
 
+    def write_records(self, x):
+        self.dal.write_records(x['new_timestamp'], x['records'])
+
     def process(self):
         _last_record_time, _previous_records = self.dal.get_last_records()
         new_timestamp = _last_record_time + timedelta(seconds=60)
         _next_records = self.create_next_records(_previous_records,
                                                  new_timestamp)
+        records_to_write = []
         while (len(_next_records) > 0):
-            self.dal.write_records(new_timestamp, _next_records)
+            record_to_write = {
+                "new_timestamp" : new_timestamp, 
+                "records" : _next_records
+            }
+            records_to_write.append(record_to_write)
             _previous_records = _next_records
             _last_record_time = new_timestamp
             new_timestamp = new_timestamp + timedelta(seconds=60)
             _next_records = self.create_next_records(_previous_records,
                                                      new_timestamp)
+        from multiprocessing import Pool
+        with Pool(10) as p:
+            p.map(self.write_records, records_to_write)
         self.dal.write_last_records(_last_record_time, _previous_records)
 
     @classmethod
