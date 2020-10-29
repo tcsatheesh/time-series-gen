@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 import urllib
 
-from .business_layer import BusinessLayer
+from .business_layer_adls import BusinessLayer
 
 trace.set_tracer_provider(TracerProvider())
 tracer = trace.get_tracer(__name__)
@@ -27,25 +27,34 @@ exporter = AzureMonitorSpanExporter(connection_string='InstrumentationKey=' +
 span_processor = BatchExportSpanProcessor(exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 
-connection_string = os.environ["SQL_CONNECTION_STRING"]
+# connection_string = os.environ["SQL_CONNECTION_STRING"]
 
-params = urllib.parse.quote_plus(
-    connection_string)  # urllib.parse.quote_plus for python 3
+# params = urllib.parse.quote_plus(
+#     connection_string)  # urllib.parse.quote_plus for python 3
 
-conn_str = 'mssql+pyodbc:///?odbc_connect={}'.format(params)
-engine = create_engine(conn_str, echo=True)
+# conn_str = 'mssql+pyodbc:///?odbc_connect={}'.format(params)
+# engine = create_engine(conn_str, echo=True)
 
-SQLAlchemyInstrumentor().instrument(
-    engine=engine,
-    service="GenerateTimeSeriesData",
-)
+# SQLAlchemyInstrumentor().instrument(
+#     engine=engine,
+#     service="GenerateTimeSeriesData",
+# )
 
+def log_ip():
+    import requests
+    import json 
+    response = requests.get("https://api.ipify.org?format=json")
+    obj = response.json()
+    logging.info("IP Address is: %s" % obj['ip'])
 
-def main(mytimer: func.TimerRequest) -> None:
-    utc_timestamp = datetime.utcnow()
+def main(mytimer: func.TimerRequest) -> None:    
+    
+    utc_timestamp = datetime.utcnow()    
 
     with tracer.start_as_current_span('BusinessLayer.run'):
-        BusinessLayer.run(engine, utc_timestamp, enable_anomaly=False)
+        log_ip()
+        # BusinessLayer.run(engine, utc_timestamp, enable_anomaly=False)
+        BusinessLayer.run(utc_timestamp, enable_anomaly=False)
 
-    logging.info('Version: 1.3 - Python timer trigger function ran at %s',
+    logging.info('Version: 1.6 - Python timer trigger function ran at %s',
                  utc_timestamp.isoformat())

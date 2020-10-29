@@ -9,6 +9,20 @@
       "console": "integratedTerminal"      
     },
     {
+      "name": "Python: Storage Test",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/GenerateTimeSeriesData/business_layer_stg.py",
+      "console": "integratedTerminal"      
+    },
+    {
+      "name": "Python: Data Lake Test",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/GenerateTimeSeriesData/business_layer_adls.py",
+      "console": "integratedTerminal"      
+    },
+    {
       "name": "Attach to Python Functions",
       "type": "python",
       "request": "attach",
