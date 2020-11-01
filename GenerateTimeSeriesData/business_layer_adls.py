@@ -42,6 +42,7 @@ class DataAccessLayer(BaseLayer):
         self.file_system_name = "metadv"
         self.file_system_client = self.get_file_system_client()
         self.last_records_blob_name = "last-records.json"
+        self.anomaly_file_name = "anomaly.json"
 
     def get_file_system_client(self):
         connect_str = os.environ["ADLS_CONNECTION_STRING"]
@@ -50,6 +51,25 @@ class DataAccessLayer(BaseLayer):
         file_system_client = service_client.get_file_system_client(
             file_system=self.file_system_name)
         return file_system_client
+
+    def is_anomaly_enabled(self):
+        anomaly_status = False
+        try:
+            file_client = self.file_system_client.get_file_client(
+                self.anomaly_file_name)
+            obj = json.loads(file_client.download_file().readall())
+            anomaly_status =  bool(obj["is_anomaly_enabled"])
+        except ResourceNotFoundError:
+            anomaly_record = {
+                "is_anomaly_enabled": anomaly_status
+            }
+            file_client = self.file_system_client.get_file_client(
+                self.anomaly_file_name)
+            self.logme("\nUploading anomaly record to Azure Data Lake Store as: " +
+                    self.anomaly_file_name)
+            json_str = json.dumps(anomaly_record, cls=ComplexEncoder)
+            file_client.upload_data(json_str, overwrite=True)
+        return anomaly_status
 
     def get_last_records(self):
         last_records = []
@@ -112,7 +132,7 @@ class BusinessLayer(BaseLayer):
     def __init__(self, current_datetime, enable_anomaly):
         self.dal = DataAccessLayer()
         self.current_datetime = current_datetime
-        self.enable_anomaly = enable_anomaly
+        self.enable_anomaly = self.dal.is_anomaly_enabled()
 
     def get_value(self, previous_record):
         equipment_list = {
